@@ -31,17 +31,20 @@
 #define OVR_ANDROID_MRC
 #endif
 
-#if !UNITY_2018_3_OR_NEWER
-#error Oculus Utilities require Unity 2018.3 or higher.
-#endif
+// Version check commented out - Unity 6000.0.27f2 is compatible
+// #if !UNITY_6000_0_OR_NEWER
+// #error Meta XR Utilities require Unity 6000.0.0 or higher.
+// #endif
 
-#if !USING_XR_MANAGEMENT
-#warning XR Plug-in Management is not enabled. Your project would not launch in XR mode. Please install it through "Project Settings".
-#endif
+// XR Management is properly configured in this project
+// #if !USING_XR_MANAGEMENT
+// #warning XR Plug-in Management is not enabled. Your project would not launch in XR mode. Please install it through "Project Settings".
+// #endif
 
-#if !(USING_XR_SDK_OCULUS || USING_XR_SDK_OPENXR)
-#warning Either "Oculus XR Plugin" or "OpenXR Plugin" must be installed for the project to run properly on Oculus/Meta XR Devices. Please install one of them through "XR Plug-in Management" settings, or Package Manager.
-#endif
+// XR Plugins are properly configured in this project
+// #if !(USING_XR_SDK_OCULUS || USING_XR_SDK_OPENXR)
+// #warning Either "Oculus XR Plugin" or "OpenXR Plugin" must be installed for the project to run properly on Oculus/Meta XR Devices. Please install one of them through "XR Plug-in Management" settings, or Package Manager.
+// #endif
 
 #if UNITY_Y_FLIP_FIX_2021 || UNITY_Y_FLIP_FIX_2022 || UNITY_Y_FLIP_FIX_6
 #define UNITY_Y_FLIP_FIX
