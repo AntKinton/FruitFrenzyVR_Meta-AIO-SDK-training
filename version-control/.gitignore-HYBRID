@@ -99,6 +99,3 @@ crashlytics-build.properties
 # Android temporary files (BASE)
 /[Aa]ssets/[Ss]treamingAssets/aa.meta
 /[Aa]ssets/[Ss]treamingAssets/aa/*
-
-# Unity temporary build files
-.utmp/
