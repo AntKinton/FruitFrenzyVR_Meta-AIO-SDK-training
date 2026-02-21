@@ -108,8 +108,8 @@ Fruit Frenzy VR includes custom-designed particle effects for immersive gameplay
 To open and run the project in Unity:
 ```
 # Clone the repository
-git clone https://github.com/ramirez-nathan/FruitFrenzy.git
-cd FruitFrenzy
+git clone https://github.com/AntKinton/FruitFrenzyVR_Meta-AIO-SDK-training.git
+cd FruitFrenzyVR_Meta-AIO-SDK-training
 ```
 1. Open the folder in **Unity 6000.0.47f1** or later.  
 2. Make sure the Meta XR All-in-One SDK is installed.  
