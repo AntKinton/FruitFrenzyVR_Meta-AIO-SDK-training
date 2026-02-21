@@ -27,6 +27,13 @@ The project tracks the transition from the original base versions to the current
 * **SDK Implementation:** Deep dive into the v85.0.0 features, including the Interaction SDK and OVRCameraRig.
 * **Version Stability:** Evaluating performance and API changes between the base 6000.0.x versions.
 * **Build Pipeline:** Optimization for standalone Quest deployment using Unity 6's latest rendering features.
+* **Linux Development:** Full Linux development support with custom Meta XR SDK patches.
+
+### Platform Support
+- **Development**: Linux, Windows, macOS ✅
+- **Target**: Meta Quest 2+ ✅
+- **Build Pipeline**: Android deployment ✅
+- **Simulator**: Windows/macOS only (Linux not supported)
 
 Fruit Frenzy VR is a fast-paced, arcade-style virtual reality game developed in Unity. Built for the Meta Quest 2, players slice flying fruit in an immersive, low-poly environment using hand-tracking powered by Meta's All-in-One SDK. Inspired by the simplicity and addictiveness of Fruit Ninja, this game was designed and developed in a 2-week sprint for UCR CS135.
 
@@ -66,6 +73,7 @@ FruitFrenzyVR_Meta-AIO-SDK-training/
 ├── 📁 doc/                       # Documentation
 │   ├── INITIAL-STRUCTURE.md      # Project architecture analysis
 │   ├── MIGRATION.md              # SDK migration guide
+│   ├── LINUX.md                  # Linux development guide
 │   ├── HELP.md                   # Support & troubleshooting
 │   └── EXAMPLES.md              # Code examples & patterns
 ├── 📄 README.md                  # Project documentation
@@ -105,16 +113,32 @@ Fruit Frenzy VR includes custom-designed particle effects for immersive gameplay
 
 ## Installation
 
-To open and run the project in Unity:
-```
+### Prerequisites
+- **Unity Editor**: 6000.0.27f2 or later
+- **Meta XR SDK**: v85.0.0 (included)
+- **Development OS**: Linux, Windows, or macOS
+- **Target Device**: Meta Quest 2+ with Developer Mode
+
+### Setup Instructions
+```bash
 # Clone the repository
 git clone https://github.com/AntKinton/FruitFrenzyVR_Meta-AIO-SDK-training.git
 cd FruitFrenzyVR_Meta-AIO-SDK-training
 ```
-1. Open the folder in **Unity 6000.0.47f1** or later.  
-2. Make sure the Meta XR All-in-One SDK is installed.  
-3. Connect your Meta Quest 2 via USB.  
-4. Build and run to deploy the game to the headset.
+
+1. Open the folder in **Unity 6000.0.27f2** or later
+2. Unity will automatically resolve packages and apply Linux patches
+3. Connect your Meta Quest 2 via USB (enable Developer Mode)
+4. Configure XR Plugin Management:
+   - **Linux**: Enable Meta XR Plugin, disable OpenXR
+   - **Windows/macOS**: Enable both Meta XR Plugin and OpenXR
+5. Build and run to deploy the game to the headset
+
+### Linux Development Notes
+- Meta XR Simulator is not supported on Linux (expected behavior)
+- All core VR development features work perfectly
+- Use Quest 2 device for testing VR functionality
+- See [doc/LINUX.md](doc/LINUX.md) for detailed Linux setup guide
 
 ## Build
 
