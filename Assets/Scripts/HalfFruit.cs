@@ -1,115 +1,50 @@
-using System.Data;
 using UnityEngine;
 
-public class HalfFruit : MonoBehaviour
+[RequireComponent(typeof(Rigidbody), typeof(MeshFilter), typeof(MeshCollider))]
+public class HalfFruitRuntime : MonoBehaviour
 {
-    private float gravityScale = 1f;
+    public float gravityScale = 1f;
+    private Rigidbody rb;
 
-    public Rigidbody rb;
-
-    public char axisToManipulate;
-
-    public float spawnSpacingDist;
-
-    public bool isFlipped;
-
-    public float separationForce = 0.2f;
-
-    private ParticleSystem juiceParticleEffect;
-
-    private void Awake()
+    void Awake()
     {
         gameObject.layer = LayerMask.NameToLayer("HalfFruit");
         rb = GetComponent<Rigidbody>();
-        juiceParticleEffect = GetComponentInChildren<ParticleSystem>();
-        if (juiceParticleEffect != null)
-        {
-            Debug.LogWarning($"{gameObject.name}: Juice Particle Effect not found!");
-        }
-        juiceParticleEffect.Play();
     }
-    void Start()
+
+    // Llamado desde Fruit.Slice() justo después de instanciar
+    public void Init(Mesh slicedMesh, Vector3 inheritedVelocity,
+                     Vector3 separationDir, float separationForce,
+                     Material[] materials)
     {
-        
+        // Asignar mesh cortado
+        GetComponent<MeshFilter>().sharedMesh = slicedMesh;
+
+        // MeshCollider convex para que Unity pueda calcular física
+        var col = GetComponent<MeshCollider>();
+        col.sharedMesh  = slicedMesh;
+        col.convex      = true;
+
+        // Materiales: [0] = skin del fruto, [1] = cross-section (tapa interior)
+        GetComponent<MeshRenderer>().materials = materials;
+
+        // Física
+        rb.linearVelocity = inheritedVelocity;
+        rb.AddForce(separationDir * separationForce, ForceMode.Impulse);
+        rb.angularVelocity = new Vector3(
+            Random.Range(-3f, 3f),
+            Random.Range(-3f, 3f),
+            Random.Range(-3f, 3f));
     }
 
     void FixedUpdate()
     {
-        Fall();
-    }
-
-    private void Fall()
-    {
-        // normal gravity when falling
         rb.AddForce(Physics.gravity * gravityScale * 0.5f, ForceMode.Acceleration);
     }
 
-    public void SetSpawnSpacingandRotation()
+    void OnTriggerEnter(Collider other)
     {
-        if (rb != null)
-        {
-            var ls = transform.localScale;
-            var newSpacing = transform.position;
-            Vector3 separationDirection = GetSeparationDirection(isFlipped);
-            Debug.Log("setting spawn spacing and rotation ");
-            switch (axisToManipulate)
-            {
-                case 'x':
-                    if (isFlipped) // flip local scale
-                    {
-                        transform.localScale = new Vector3(-ls.x, ls.y, ls.z);
-                    }
-
-                    break;
-                case 'y':
-                    if (isFlipped) // flip local scale
-                    {
-                        transform.localScale = new Vector3(ls.x, -ls.y, ls.z);
-                    }
-
-                    break;
-                case 'z':
-                    if (isFlipped) // flip local scale
-                    {
-                        transform.localScale = new Vector3(ls.x, ls.y, -ls.z);
-                    }
-
-                    break;
-            }
-            rb.AddForce(separationDirection * separationForce, ForceMode.Impulse);
-        }
-        else Debug.LogWarning("half fruit rb is null! Something went wrong");
-    }
-
-    private Vector3 GetSeparationDirection(bool isFlipped)
-    {
-
-        switch (axisToManipulate)
-        {
-            case 'x':
-                return isFlipped ? Vector3.left : Vector3.right;
-            case 'y':
-                return isFlipped ? Vector3.down : Vector3.up;
-            case 'z':
-                return isFlipped ? Vector3.back : Vector3.forward;
-            default:
-                return isFlipped ? Vector3.left : Vector3.right;
-        }
-    }
-    /*private void OnTriggerEnter(Collider other)
-    {
-        if (other.gameObject.layer == LayerMask.NameToLayer("Bamboo"))
-        {
-            Debug.Log($"destroying half fruit {this.gameObject.name}");
-            Destroy(gameObject);
-        }
-    }*/
-    private void OnTriggerEnter(Collider other)
-    {
-        //Debug.Log($"{gameObject.name} collision with {collision.gameObject.name} | This layer: {gameObject.layer}, Other layer: {collision.gameObject.layer}");
         if (other.gameObject.layer == LayerMask.NameToLayer("Plane"))
-        {
             Destroy(gameObject);
-        }
     }
 }

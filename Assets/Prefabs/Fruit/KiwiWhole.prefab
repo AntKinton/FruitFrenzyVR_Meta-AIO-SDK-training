@@ -81,6 +81,10 @@ PrefabInstance:
       value: 
       objectReference: {fileID: -3846018093981099296, guid: 35048ac2de5b8f9488a63920565b82ed, type: 3}
     - target: {fileID: 6896992334846094847, guid: d97f744b15c22fb488286372acc2d6c2, type: 3}
+      propertyPath: rb
+      value: 
+      objectReference: {fileID: 6737872268784193312}
+    - target: {fileID: 6896992334846094847, guid: d97f744b15c22fb488286372acc2d6c2, type: 3}
       propertyPath: halfFruit
       value: 
       objectReference: {fileID: 8035263694765923991, guid: bb1fd1cf81f547c4cb4f5cbeede7eb10, type: 3}
@@ -88,6 +92,10 @@ PrefabInstance:
       propertyPath: halfFruitPrefab
       value: 
       objectReference: {fileID: 8035263694765923991, guid: bb1fd1cf81f547c4cb4f5cbeede7eb10, type: 3}
+    - target: {fileID: 6896992334846094847, guid: d97f744b15c22fb488286372acc2d6c2, type: 3}
+      propertyPath: crossSectionMaterial
+      value: 
+      objectReference: {fileID: -3846018093981099296, guid: 35048ac2de5b8f9488a63920565b82ed, type: 3}
     m_RemovedComponents:
     - {fileID: -4362723659314909992, guid: d97f744b15c22fb488286372acc2d6c2, type: 3}
     m_RemovedGameObjects: []
@@ -100,6 +108,11 @@ PrefabInstance:
       insertIndex: -1
       addedObject: {fileID: 910871301663227302}
   m_SourcePrefab: {fileID: 100100000, guid: d97f744b15c22fb488286372acc2d6c2, type: 3}
+--- !u!54 &6737872268784193312 stripped
+Rigidbody:
+  m_CorrespondingSourceObject: {fileID: 2000218669872421452, guid: d97f744b15c22fb488286372acc2d6c2, type: 3}
+  m_PrefabInstance: {fileID: 5063048088974775660}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &7359966331922963336 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 2332958113735741156, guid: d97f744b15c22fb488286372acc2d6c2, type: 3}
@@ -136,7 +149,7 @@ AudioSource:
   m_Enabled: 1
   serializedVersion: 4
   OutputAudioMixerGroup: {fileID: 0}
-  m_audioClip: {fileID: 8300000, guid: 5ebb74bfc440f214b83f57ef2b1e4337, type: 3}
+  m_audioClip: {fileID: 0}
   m_Resource: {fileID: 8300000, guid: 5ebb74bfc440f214b83f57ef2b1e4337, type: 3}
   m_PlayOnAwake: 1
   m_Volume: 0.075

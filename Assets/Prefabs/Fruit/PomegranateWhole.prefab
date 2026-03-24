@@ -81,6 +81,10 @@ PrefabInstance:
       value: 
       objectReference: {fileID: -6478536213147159724, guid: 8faac673dea69594b888580711621e50, type: 3}
     - target: {fileID: 6896992334846094847, guid: d97f744b15c22fb488286372acc2d6c2, type: 3}
+      propertyPath: rb
+      value: 
+      objectReference: {fileID: 3483106896985460620}
+    - target: {fileID: 6896992334846094847, guid: d97f744b15c22fb488286372acc2d6c2, type: 3}
       propertyPath: halfFruit
       value: 
       objectReference: {fileID: 6628276319994992290, guid: 6db74dbf91180f340aa136237fcefb52, type: 3}
@@ -88,6 +92,10 @@ PrefabInstance:
       propertyPath: halfFruitPrefab
       value: 
       objectReference: {fileID: 6628276319994992290, guid: 6db74dbf91180f340aa136237fcefb52, type: 3}
+    - target: {fileID: 6896992334846094847, guid: d97f744b15c22fb488286372acc2d6c2, type: 3}
+      propertyPath: crossSectionMaterial
+      value: 
+      objectReference: {fileID: -6478536213147159724, guid: 8faac673dea69594b888580711621e50, type: 3}
     m_RemovedComponents:
     - {fileID: -4362723659314909992, guid: d97f744b15c22fb488286372acc2d6c2, type: 3}
     m_RemovedGameObjects: []
@@ -136,7 +144,7 @@ AudioSource:
   m_Enabled: 1
   serializedVersion: 4
   OutputAudioMixerGroup: {fileID: 0}
-  m_audioClip: {fileID: 8300000, guid: 5ebb74bfc440f214b83f57ef2b1e4337, type: 3}
+  m_audioClip: {fileID: 0}
   m_Resource: {fileID: 8300000, guid: 5ebb74bfc440f214b83f57ef2b1e4337, type: 3}
   m_PlayOnAwake: 1
   m_Volume: 0.075
@@ -223,3 +231,8 @@ AudioSource:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
+--- !u!54 &3483106896985460620 stripped
+Rigidbody:
+  m_CorrespondingSourceObject: {fileID: 2000218669872421452, guid: d97f744b15c22fb488286372acc2d6c2, type: 3}
+  m_PrefabInstance: {fileID: 3140221757023163840}
+  m_PrefabAsset: {fileID: 0}

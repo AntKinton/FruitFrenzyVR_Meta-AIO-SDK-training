@@ -45,6 +45,11 @@ public class Katana : MonoBehaviour
         {
             VibrateController(0.4f, fruitScript);
         }
+
+         Vector3 sliceNormal = transform.right;
+        Vector3 slicePoint = fruitScript.transform.position; // punto en el centro del fruto
+        fruitScript.slicePlane = new Plane(sliceNormal, slicePoint);
+        
         fruitScript.Slice();
     }
     public void VibrateController(float amplitude, Fruit fruitScript)
