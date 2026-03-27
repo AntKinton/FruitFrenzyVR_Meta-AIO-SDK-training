@@ -5,9 +5,10 @@ public static class MeshSlicer
 {
     public struct SliceResult
     {
-        public Mesh meshA; // vértices en el lado positivo del plano
-        public Mesh meshB; // vértices en el lado negativo
+        public Mesh meshA;
+        public Mesh meshB;
     }
+
 
     public static SliceResult Slice(Mesh original, Plane plane)
     {
@@ -17,7 +18,7 @@ public static class MeshSlicer
         var trisB  = new List<int>();
         var uvsA   = new List<Vector2>();
         var uvsB   = new List<Vector2>();
-        var capVerts = new List<Vector3>(); // puntos en el plano → tapa
+        var capVerts = new List<Vector3>();
 
         Vector3[] verts = original.vertices;
         int[]     tris  = original.triangles;
@@ -37,7 +38,6 @@ public static class MeshSlicer
 
             if (s0 == s1 && s1 == s2)
             {
-                // Triángulo entero en un lado
                 AddTriangle(s0 ? vertsA : vertsB,
                             s0 ? trisA  : trisB,
                             s0 ? uvsA   : uvsB,
@@ -45,7 +45,6 @@ public static class MeshSlicer
             }
             else
             {
-                // Triángulo intersecta el plano → cortar
                 SliceTriangle(plane,
                     v0, v1, v2, u0, u1, u2, s0, s1, s2,
                     vertsA, trisA, uvsA,
@@ -54,17 +53,23 @@ public static class MeshSlicer
             }
         }
 
-        // Generar tapa (cap) para cada lado
+        // Guardar dónde empiezan los tris de la tapa
+        int capStartA = trisA.Count;
+        int capStartB = trisB.Count;
+
         if (capVerts.Count >= 3)
         {
-            AddCap(capVerts, plane.normal, vertsA, trisA, uvsA, flip: false);
-            AddCap(capVerts, plane.normal, vertsB, trisB, uvsB, flip: true);
+            //AddCap(capVerts, plane.normal, vertsA, trisA, uvsA, flip: false);
+            //AddCap(capVerts, plane.normal, vertsB, trisB, uvsB, flip: true);
+            // INVERTIMOS EL FLIP: Ahora las caras mirarán hacia afuera
+            AddCap(capVerts, plane.normal, vertsA, trisA, uvsA, flip: true);  
+            AddCap(capVerts, plane.normal, vertsB, trisB, uvsB, flip: false);
         }
 
         return new SliceResult
         {
-            meshA = BuildMesh(vertsA, trisA, uvsA),
-            meshB = BuildMesh(vertsB, trisB, uvsB)
+            meshA = BuildMesh(vertsA, trisA, uvsA, capStartA),
+            meshB = BuildMesh(vertsB, trisB, uvsB, capStartB)
         };
     }
 
@@ -178,13 +183,26 @@ public static class MeshSlicer
         }
     }
 
-    static Mesh BuildMesh(List<Vector3> verts, List<int> tris, List<Vector2> uvs)
+    static Mesh BuildMesh(List<Vector3> verts, List<int> tris, List<Vector2> uvs, int capStart)
     {
         var m = new Mesh();
         m.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;
-        m.vertices  = verts.ToArray();
-        m.triangles = tris.ToArray();
-        m.uv        = uvs.ToArray();
+        m.vertices = verts.ToArray();
+        m.uv = uvs.ToArray();
+
+        // En lugar de forzar 2, calculamos si hay triángulos para la tapa
+        bool hasCap = tris.Count > capStart;
+        m.subMeshCount = hasCap ? 2 : 1; 
+
+        // Submesh 0: Todo lo que no es la tapa
+        m.SetTriangles(tris.GetRange(0, capStart).ToArray(), 0);
+
+        if (hasCap)
+        {
+            // Submesh 1: La tapa
+            m.SetTriangles(tris.GetRange(capStart, tris.Count - capStart).ToArray(), 1);
+        }
+
         m.RecalculateNormals();
         m.RecalculateBounds();
         return m;

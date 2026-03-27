@@ -144,7 +144,7 @@ public class FruitSpawner : MonoBehaviour
     public void SpawnBomb()
     {
         Transform randomSpawnPoint = spawnPoints[Random.Range(0, spawnPoints.Length)];
-        GameObject selectedBomb = WholeFruits[13];
+        GameObject selectedBomb = WholeFruits[7];
         GameObject bomb = Instantiate(selectedBomb, randomSpawnPoint.position, transform.rotation);
         Rigidbody rb = bomb.GetComponent<Rigidbody>();
         // Apply same physics as fruits

@@ -149,30 +149,68 @@ public class Fruit : MonoBehaviour
             explosion.GetComponent<ParticleSystem>().Play();
             explosion.GetComponentInChildren<ParticleSystem>().Play(); 
             GameManager.Instance.State = GameState.Lose;
-            AudioManager.instance.PlaySoundByName("BombExplode", false); // play bomb sound
+            AudioManager.instance.PlaySoundByName("BombExplode", false);
             Destroy(gameObject);
             return;
         }
-
-        AudioManager.instance.PlaySoundByName("FruitSlice", true);
-
-        Mesh original = GetComponent<MeshFilter>().sharedMesh;
-        Vector3 localNormal = transform.InverseTransformDirection(slicePlane.normal).normalized;
-        Plane localPlane = new Plane(localNormal, Vector3.zero);
-        var result = MeshSlicer.Slice(original, localPlane);
-
-        Material[] mats = GetComponent<MeshRenderer>()?.materials ?? new Material[0];
-        Material[] matsWithCap = new Material[]
+        else
         {
-            mats.Length > 0 ? mats[0] : null,
-            crossSectionMaterial != null ? crossSectionMaterial : (mats.Length > 0 ? mats[0] : null)
-        };
+            if (GameManager.Instance.inComboWindow)
+            {
+                GameManager.Instance.comboCount++;
+                GameManager.Instance.comboWindowTime = 0.5f;
+            }
+            else
+            {
+                GameManager.Instance.comboCount++;
+                GameManager.Instance.inComboWindow = true;
+                GameManager.Instance.comboWindowTime = 0.5f;
+            }
 
-        SpawnHalfFruit(result.meshA,  slicePlane.normal, matsWithCap);
-        SpawnHalfFruit(result.meshB, -slicePlane.normal, matsWithCap);
+            AudioManager.instance.PlaySoundByName("FruitSlice", true);
 
-        StartCoroutine(DestroyNextFrame());
+            Mesh original = GetComponent<MeshFilter>().sharedMesh;
 
+            if (!original.isReadable)
+            {
+                Destroy(gameObject);
+                return;
+            }
+
+            // TEST VISUAL
+/*
+            if (original.subMeshCount > 1)
+            {
+                var s = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+                s.transform.position = transform.position + Vector3.up * 0.3f;
+                s.transform.localScale = Vector3.one * 0.15f;
+                s.GetComponent<MeshRenderer>().material.color = Color.red;
+            }
+            else if (transform.localScale.x < 0.1f || transform.localScale.x > 10f)
+            {
+                var s = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+                s.transform.position = transform.position + Vector3.up * 0.3f;
+                s.transform.localScale = Vector3.one * 0.15f;
+                s.GetComponent<MeshRenderer>().material.color = Color.blue;
+            }
+*/
+
+            Vector3 localNormal = transform.InverseTransformDirection(slicePlane.normal).normalized;
+            Plane localPlane = new Plane(localNormal, Vector3.zero);
+            var result = MeshSlicer.Slice(original, localPlane);
+
+            Material mainMaterial = GetComponent<MeshRenderer>().sharedMaterial;
+            Material[] matsWithCap = new Material[]
+            {
+                mainMaterial,
+                crossSectionMaterial
+            };
+
+            SpawnHalfFruit(result.meshA,  slicePlane.normal, matsWithCap);
+            SpawnHalfFruit(result.meshB, -slicePlane.normal, matsWithCap);
+
+            StartCoroutine(DestroyNextFrame());
+        }
     }
 
     private System.Collections.IEnumerator DestroyNextFrame()
@@ -193,11 +231,11 @@ public class Fruit : MonoBehaviour
         go.AddComponent<MeshFilter>().sharedMesh = slicedMesh;
         go.AddComponent<MeshRenderer>().materials = materials;
 
-        // SphereCollider simple en lugar de MeshCollider convex
-        go.AddComponent<SphereCollider>().radius = 0.15f;
+        // ELIMINADO: go.AddComponent<SphereCollider>().radius = 0.15f;
+        // Dejamos que HalfFruitRuntime maneje su propio MeshCollider
 
         var rb2 = go.AddComponent<Rigidbody>();
-        rb2.useGravity = false; // la gravedad la maneja HalfFruitRuntime
+        rb2.useGravity = false;
 
         var half = go.AddComponent<HalfFruitRuntime>();
         half.Init(slicedMesh, rb.linearVelocity, separationDir, separationForce, materials);
