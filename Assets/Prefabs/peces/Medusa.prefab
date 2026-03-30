@@ -62,6 +62,11 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 8636995027941964886, guid: 51c9c5d11af75d8f8a1b9d5f8b0fe427, type: 3}
   m_PrefabInstance: {fileID: 6287452530407757912}
   m_PrefabAsset: {fileID: 0}
+--- !u!198 &7734492785727374831 stripped
+ParticleSystem:
+  m_CorrespondingSourceObject: {fileID: 4330198905113271735, guid: 51c9c5d11af75d8f8a1b9d5f8b0fe427, type: 3}
+  m_PrefabInstance: {fileID: 6287452530407757912}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &6420833176901075624
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -197,6 +202,7 @@ MonoBehaviour:
   isBomba: 0
   crossSectionMaterial: {fileID: 2100000, guid: 293cf2cd76bc27643a034d8a30dd1718, type: 2}
   separationForce: 1.5
+  juiceParticleEffect: {fileID: 7734492785727374831}
   sparkParticleEffect: {fileID: 0}
   explosionEffect: {fileID: 0}
   spawnSmokeEffect: {fileID: 3733804852468408544, guid: 6f61e1a92f527b24fbba1eb653e73ab0, type: 3}

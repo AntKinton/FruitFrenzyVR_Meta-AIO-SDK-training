@@ -1,6 +1,7 @@
 using System.Collections;
 using Unity.VisualScripting;
 using UnityEngine;
+using System.Collections.Generic;
 
 
 public class FruitSpawner : MonoBehaviour
@@ -35,11 +36,65 @@ public class FruitSpawner : MonoBehaviour
 
     private Coroutine spawnCoroutine;
 
+    [Header("Bonus Phase Settings")]
+    public GameObject whalePrefab; // Arrastra tu prefab de Ballena aquí en el Inspector
+
+    // --- SISTEMA DE OBJECT POOLING ---
+    public static FruitSpawner Instance;
+    private Dictionary<GameObject, Queue<GameObject>> fruitPools = new Dictionary<GameObject, Queue<GameObject>>();
+
+    private void Awake()
+    {
+        Instance = this;
+    }
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
         StartSpawning();
+    }
+
+    public GameObject GetFruit(GameObject prefab, Vector3 position, Quaternion rotation)
+    {
+        if (!fruitPools.ContainsKey(prefab)) fruitPools[prefab] = new Queue<GameObject>();
+
+        GameObject fruitObj;
+        if (fruitPools[prefab].Count > 0)
+        {
+            // Sacamos un pez reciclado
+            fruitObj = fruitPools[prefab].Dequeue();
+            fruitObj.transform.position = position;
+            fruitObj.transform.rotation = rotation;
+            fruitObj.SetActive(true);
+        }
+        else
+        {
+            // Si no hay reciclados, creamos uno nuevo por primera vez
+            fruitObj = Instantiate(prefab, position, rotation);
+            Fruit f = fruitObj.GetComponent<Fruit>();
+            if (f != null) f.originalPrefab = prefab; // Le decimos de qué familia viene
+        }
+
+        // Reseteamos sus físicas para que vuelva a estar "fresco"
+        Fruit fruitScript = fruitObj.GetComponent<Fruit>();
+        if (fruitScript != null) fruitScript.ResetFruit();
+
+        return fruitObj;
+    }
+
+    public void ReturnFruit(GameObject fruitObj, GameObject prefab)
+    {
+        // 1. EL SEGURO: Si ya está apagado, ignóralo para evitar duplicados
+        if (!fruitObj.activeSelf) return;
+        
+        fruitObj.SetActive(false); // Lo apagamos en lugar de destruirlo
+        if (prefab == null) 
+        {
+            Destroy(fruitObj); return; // Seguridad
+        }
+
+        if (!fruitPools.ContainsKey(prefab)) fruitPools[prefab] = new Queue<GameObject>();
+        fruitPools[prefab].Enqueue(fruitObj); // Lo metemos en la pila
     }
 
     public void StartSpawning()
@@ -49,6 +104,49 @@ public class FruitSpawner : MonoBehaviour
             StopCoroutine(spawnCoroutine);
         }
         spawnCoroutine = StartCoroutine(SpawnFruitRoutine());
+    }
+
+    public void StopSpawning()
+    {
+        if (spawnCoroutine != null)
+        {
+            StopCoroutine(spawnCoroutine);
+            spawnCoroutine = null;
+        }
+    }
+
+    public void SpawnWhaleBonus()
+    {
+        Transform randomSpawnPoint = spawnPoints[Random.Range(0, spawnPoints.Length)];
+        
+        // Elevamos a la ballena 1.5 metros extra al nacer para compensar su tamaño
+        Vector3 safeSpawnPos = randomSpawnPoint.position + new Vector3(0, 1.5f, 0);
+        GameObject whale = GetFruit(whalePrefab, safeSpawnPos, transform.rotation);
+        
+        Rigidbody rb = whale.GetComponent<Rigidbody>();
+        Fruit fruitScript = whale.GetComponent<Fruit>();
+
+        if (rb != null)
+        {
+            // Usamos la misma fuerza que los peces normales para que suba a la misma altura
+            rb.linearVelocity = new Vector3(Random.Range(-0.2f, 0.2f), 2f, 0f); 
+            rb.angularVelocity = GetRandAngVel() * 0.1f; 
+        }
+
+        if (fruitScript != null)
+        {
+            // ¡EL TRUCO DE MATRIX!
+            // 1. Dejamos su gravityScale normal para que suba y frene de forma realista.
+            
+            // 2. Le decimos que cuando alcance su punto más alto (Apex), se quede ahí 8 segundos
+            fruitScript.apexHoverTime = 8f; 
+            
+            // 3. Le quitamos la gravedad SOLO mientras está flotando arriba
+            fruitScript.apexGravityMultiplier = 0f; 
+            
+            fruitScript.maxFallSpeed = -0.5f; 
+            fruitScript.isWhaleBonus = true;  
+        }
     }
     private void OnDisable()
     {
@@ -129,7 +227,7 @@ public class FruitSpawner : MonoBehaviour
 
         GameObject selectedFruit = WholeFruits[Random.Range(0, WholeFruits.Length-1)]; // not including bomb
 
-        GameObject fruit = Instantiate(selectedFruit, randomSpawnPoint.position, transform.rotation);
+        GameObject fruit = GetFruit(selectedFruit, randomSpawnPoint.position, transform.rotation);
         Rigidbody rb = fruit.GetComponent<Rigidbody>();
 
         // adjust fruits gravity
@@ -144,8 +242,8 @@ public class FruitSpawner : MonoBehaviour
     public void SpawnBomb()
     {
         Transform randomSpawnPoint = spawnPoints[Random.Range(0, spawnPoints.Length)];
-        GameObject selectedBomb = WholeFruits[7];
-        GameObject bomb = Instantiate(selectedBomb, randomSpawnPoint.position, transform.rotation);
+        GameObject selectedBomb = WholeFruits[6];
+        GameObject bomb = GetFruit(selectedBomb, randomSpawnPoint.position, transform.rotation);
         Rigidbody rb = bomb.GetComponent<Rigidbody>();
         // Apply same physics as fruits
         if (rb != null)

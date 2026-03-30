@@ -7,71 +7,88 @@ using UnityEngine;
 public class Katana : MonoBehaviour
 {
     [SerializeField] public char katanaId;
+
     private void OnTriggerEnter(Collider other)
     {
-        if (GameManager.Instance.State == GameState.Play)
-        {
-            if (other.gameObject.layer == LayerMask.NameToLayer("WholeFruit"))
-            {
-                Debug.Log($"Sword hit fruit {other.name}");
-                //Debug.Log($"{gameObject.name} collision with {other.gameObject.name} | This layer: {gameObject.layer}, Other layer: {other.gameObject.layer}");
-                var fruitScript = other.gameObject.GetComponent<Fruit>();
-                if (!fruitScript.hasBeenSliced) SliceFruit(fruitScript);
-            }
-        }
+        HandleCollision(other);
     }
+
     private void OnTriggerStay(Collider other)
     {
-        if (GameManager.Instance.State == GameState.Play)
-        {
-            if (other.gameObject.layer == LayerMask.NameToLayer("WholeFruit"))
-            {
-                Debug.Log($"Sword hit fruit {other.name}");
-                //Debug.Log($"{gameObject.name} collision with {other.gameObject.name} | This layer: {gameObject.layer}, Other layer: {other.gameObject.layer}");
-                var fruitScript = other.gameObject.GetComponent<Fruit>();
-                if (!fruitScript.hasBeenSliced) SliceFruit(fruitScript);
-            }
+        HandleCollision(other);
+    }
 
+    // He unificado la lógica de colisión para que sea más limpia
+    private void HandleCollision(Collider other)
+    {
+        if (GameManager.Instance.State != GameState.Play) return;
+
+        // 1. Si golpeamos el pez entero
+        if (other.gameObject.layer == LayerMask.NameToLayer("WholeFruit"))
+        {
+            var fruitScript = other.gameObject.GetComponent<Fruit>();
+            if (fruitScript != null && !fruitScript.hasBeenSliced) 
+            {
+                SliceFruit(fruitScript);
+            }
+        }
+        // 2. Si golpeamos un trozo (¡Fileteado!)
+        else if (other.gameObject.layer == LayerMask.NameToLayer("HalfFruit"))
+        {
+            var halfScript = other.gameObject.GetComponent<HalfFruitRuntime>();
+            if (halfScript != null && !halfScript.hasBeenSliced)
+            {
+                SliceHalfFruit(halfScript);
+            }
         }
     }
 
+    // Corte original
     public void SliceFruit(Fruit fruitScript)
     {
-        if (fruitScript.isBomba) // bigger vibration
-        {
-            VibrateController(0.8f, fruitScript);
-        }
-        else // smaller vibration
-        {
-            VibrateController(0.4f, fruitScript);
-        }
+        float amplitude = fruitScript.isBomba ? 0.8f : 0.4f;
+        VibrateController(amplitude, fruitScript.isBomba);
 
-         Vector3 sliceNormal = transform.right;
-        Vector3 slicePoint = fruitScript.transform.position; // punto en el centro del fruto
+        Vector3 sliceNormal = transform.right;
+        Vector3 slicePoint = fruitScript.transform.position;
         fruitScript.slicePlane = new Plane(sliceNormal, slicePoint);
         
         fruitScript.Slice();
     }
-    public void VibrateController(float amplitude, Fruit fruitScript)
+
+    // NUEVO: Corte de los filetes
+    public void SliceHalfFruit(HalfFruitRuntime halfScript)
+    {
+        // Vibración más suave porque es un trozo más pequeño
+        VibrateController(0.2f, false); 
+
+        Vector3 sliceNormal = transform.right;
+        Vector3 slicePoint = halfScript.transform.position;
+        Plane slicePlane = new Plane(sliceNormal, slicePoint);
+        
+        halfScript.Slice(slicePlane);
+    }
+
+    // He actualizado esta función para que reciba directamente si es bomba o no, 
+    // así podemos usarla tanto con Fruit como con HalfFruitRuntime
+    public void VibrateController(float amplitude, bool isBomba)
     {
         if (katanaId == 'r')
         {
-            Debug.Log("Right katana hit fruit");
             OVRInput.SetControllerVibration(1, amplitude, OVRInput.Controller.RTouch);
-            if (fruitScript.isBomba) OVRInput.SetControllerVibration(1, amplitude * 0.5f, OVRInput.Controller.LTouch);
-            if (!fruitScript.isBomba) StartCoroutine(VibrationTime(0.3f, false)); // if fruit then shorter vibration
-            else StartCoroutine(VibrationTime(0.6f, false)); // else its bomb so longer vibration
+            if (isBomba) OVRInput.SetControllerVibration(1, amplitude * 0.5f, OVRInput.Controller.LTouch);
+            
+            StartCoroutine(VibrationTime(isBomba ? 0.6f : 0.3f, isBomba));
         }
         else if (katanaId == 'l')
         {
-            Debug.Log("Left katana hit fruit");
             OVRInput.SetControllerVibration(1, amplitude, OVRInput.Controller.LTouch);
-            if (fruitScript.isBomba) OVRInput.SetControllerVibration(1, amplitude * 0.5f, OVRInput.Controller.RTouch); 
-            if (!fruitScript.isBomba) StartCoroutine(VibrationTime(0.3f, false));
-            else StartCoroutine(VibrationTime(0.6f, false)); 
+            if (isBomba) OVRInput.SetControllerVibration(1, amplitude * 0.5f, OVRInput.Controller.RTouch); 
+            
+            StartCoroutine(VibrationTime(isBomba ? 0.6f : 0.3f, isBomba));
         }
-        else Debug.LogWarning("Katana id is invalid!");
     }
+
     private IEnumerator VibrationTime(float seconds, bool isBomb)
     {
         yield return new WaitForSeconds(seconds);
@@ -85,6 +102,5 @@ public class Katana : MonoBehaviour
             OVRInput.SetControllerVibration(0, 0, OVRInput.Controller.LTouch);
             if (isBomb) OVRInput.SetControllerVibration(0, 0, OVRInput.Controller.RTouch);
         }
-        else Debug.LogWarning("Katana id is invalid!");
     }
 }

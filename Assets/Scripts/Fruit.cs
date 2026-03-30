@@ -1,6 +1,7 @@
 using Oculus.Interaction;
 using Unity.VisualScripting;
 using UnityEngine;
+using EzySlice;
 
 [RequireComponent (typeof(Rigidbody))]
 public class Fruit : MonoBehaviour
@@ -16,9 +17,9 @@ public class Fruit : MonoBehaviour
     public Material crossSectionMaterial; // material para la tapa interior
     public float separationForce = 1.5f;
 
-    [HideInInspector] public Plane slicePlane;
+    [HideInInspector] public UnityEngine.Plane slicePlane;
     // Fruit particles
-    private ParticleSystem juiceParticleEffect;
+    public ParticleSystem juiceParticleEffect;
     public ParticleSystem sparkParticleEffect;
     public GameObject explosionEffect;
     public GameObject spawnSmokeEffect;
@@ -42,19 +43,42 @@ public class Fruit : MonoBehaviour
     public float downwardDrag = 0.05f;
     public bool hasBeenSliced = false;
     public bool isDead = false;
+    public bool isWhaleBonus = false;
+
+    [HideInInspector] public GameObject originalPrefab;
     private void Awake()
     {
-                 //$"{name} spawned without a Half Fruit reference!");
         rb = GetComponent<Rigidbody>();
-        if (halfFruitPrefab != null) //Debug.Log($"{name} has correct reference to {halfFruitPrefab.name}");
-        gameObject.layer = LayerMask.NameToLayer("WholeFruit");
-        if (isBomba) sparkParticleEffect.Play();
         Physics.IgnoreLayerCollision(LayerMask.NameToLayer("WholeFruit"), LayerMask.NameToLayer("Bamboo"), true);
-        juiceParticleEffect = GetComponentInChildren<ParticleSystem>();
-        var smoke = Instantiate(spawnSmokeEffect, transform.position, Quaternion.identity);
-        smoke.gameObject.SetActive(true);
-        smoke.GetComponent<ParticleSystem>().Play();
-        smoke.GetComponentInChildren<ParticleSystem>().Play();
+    }
+
+
+    public void ResetFruit()
+    {
+        hasBeenSliced = false;
+        isDead = false;
+        isWhaleBonus = false;
+        isAtApex = false;
+        apexTimer = 0f;
+
+       // Limpiamos fuerzas anteriores para que no salga volando a lo loco
+        rb.isKinematic = true;  // Forzamos a Unity a borrar la caché de físicas
+        rb.isKinematic = false; // Lo volvemos a despertar
+        rb.linearVelocity = Vector3.zero;
+        rb.angularVelocity = Vector3.zero;
+        gameObject.layer = LayerMask.NameToLayer("WholeFruit");
+
+        if (isBomba && sparkParticleEffect != null) sparkParticleEffect.Play();
+
+        // El humo lo instanciamos y destruimos porque es un efecto rápido
+        if (spawnSmokeEffect != null)
+        {
+            var smoke = Instantiate(spawnSmokeEffect, transform.position, Quaternion.identity);
+            smoke.gameObject.SetActive(true);
+            smoke.GetComponent<ParticleSystem>().Play();
+            smoke.GetComponentInChildren<ParticleSystem>().Play();
+            Destroy(smoke, 2f);
+        }
     }
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
@@ -141,7 +165,9 @@ public class Fruit : MonoBehaviour
 
     public void Slice()
     {
+        if (hasBeenSliced) return; // Seguro extra para evitar dobles cortes en el mismo frame
         hasBeenSliced = true;
+
         if (isBomba)
         {
             var explosion = Instantiate(explosionEffect, transform.position, Quaternion.identity);
@@ -149,96 +175,103 @@ public class Fruit : MonoBehaviour
             explosion.GetComponent<ParticleSystem>().Play();
             explosion.GetComponentInChildren<ParticleSystem>().Play(); 
             GameManager.Instance.State = GameState.Lose;
-            AudioManager.instance.PlaySoundByName("BombExplode", false);
-            Destroy(gameObject);
+            AudioManager.instance.PlaySoundByName("BombExplode", false); 
+            FruitSpawner.Instance.ReturnFruit(gameObject, originalPrefab); // Usando la piscina
             return;
         }
-        else
+        else 
         {
+            // --- GESTIÓN DEL COMBO ---
+            if (GameManager.Instance != null && !isWhaleBonus)
+            {
+                GameManager.Instance.RegisterFishSliced();
+            }
+
             if (GameManager.Instance.inComboWindow)
             {
                 GameManager.Instance.comboCount++;
-                GameManager.Instance.comboWindowTime = 0.5f;
+                GameManager.Instance.comboWindowTime = 0.5f; 
             }
             else
             {
                 GameManager.Instance.comboCount++;
-                GameManager.Instance.inComboWindow = true;
-                GameManager.Instance.comboWindowTime = 0.5f;
+                GameManager.Instance.inComboWindow = true; 
+                GameManager.Instance.comboWindowTime = 0.5f; 
             }
 
             AudioManager.instance.PlaySoundByName("FruitSlice", true);
 
-            Mesh original = GetComponent<MeshFilter>().sharedMesh;
-
-            if (!original.isReadable)
+            // --- EFECTO DE SANGRE (Con clonación para el Object Pool) ---
+            if (juiceParticleEffect != null)
             {
-                Destroy(gameObject);
-                return;
+                ParticleSystem juiceClone = Instantiate(juiceParticleEffect, transform.position, Quaternion.LookRotation(slicePlane.normal));
+                juiceClone.transform.SetParent(null);
+                juiceClone.gameObject.SetActive(true);
+                juiceClone.Play();
+                Destroy(juiceClone.gameObject, 2f);
             }
 
-            // TEST VISUAL
-/*
-            if (original.subMeshCount > 1)
+            // --- ¡LA MAGIA DE EZYSLICE! ---
+            // Cortamos directamente el GameObject usando el material de la carne para el interior
+            SlicedHull result = gameObject.Slice(transform.position, slicePlane.normal, crossSectionMaterial);
+
+            if (result != null)
             {
-                var s = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-                s.transform.position = transform.position + Vector3.up * 0.3f;
-                s.transform.localScale = Vector3.one * 0.15f;
-                s.GetComponent<MeshRenderer>().material.color = Color.red;
+                // EzySlice nos crea directamente los dos GameObjects con sus mallas
+                GameObject top = result.CreateUpperHull(gameObject, crossSectionMaterial);
+                GameObject bottom = result.CreateLowerHull(gameObject, crossSectionMaterial);
+
+                // Los configuramos
+                SetupSlicedHalf(top, slicePlane.normal);
+                SetupSlicedHalf(bottom, -slicePlane.normal);
             }
-            else if (transform.localScale.x < 0.1f || transform.localScale.x > 10f)
-            {
-                var s = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-                s.transform.position = transform.position + Vector3.up * 0.3f;
-                s.transform.localScale = Vector3.one * 0.15f;
-                s.GetComponent<MeshRenderer>().material.color = Color.blue;
-            }
-*/
 
-            Vector3 localNormal = transform.InverseTransformDirection(slicePlane.normal).normalized;
-            Plane localPlane = new Plane(localNormal, Vector3.zero);
-            var result = MeshSlicer.Slice(original, localPlane);
-
-            Material mainMaterial = GetComponent<MeshRenderer>().sharedMaterial;
-            Material[] matsWithCap = new Material[]
-            {
-                mainMaterial,
-                crossSectionMaterial
-            };
-
-            SpawnHalfFruit(result.meshA,  slicePlane.normal, matsWithCap);
-            SpawnHalfFruit(result.meshB, -slicePlane.normal, matsWithCap);
-
-            StartCoroutine(DestroyNextFrame());
-        }
+            // Devolvemos el pez original a la piscina al siguiente frame
+            StartCoroutine(ReturnNextFrame());
+        }  
     }
 
-    private System.Collections.IEnumerator DestroyNextFrame()
+    private System.Collections.IEnumerator ReturnNextFrame()
     {
-        yield return null; // espera un frame
-        Destroy(gameObject);
+        yield return null; 
+        FruitSpawner.Instance.ReturnFruit(gameObject, originalPrefab);
     }
 
-    void SpawnHalfFruit(Mesh slicedMesh, Vector3 separationDir, Material[] materials)
+    // --- NUEVA VERSIÓN DE SPAWN HALF FRUIT ---
+    void SetupSlicedHalf(GameObject go, Vector3 separationDir)
     {
-        if (slicedMesh == null || slicedMesh.vertexCount < 3) return;
+        go.layer = LayerMask.NameToLayer("HalfFruit");
 
-        var go = new GameObject("HalfFruit_Runtime");
+        // Igualamos posiciones
         go.transform.position = transform.position;
         go.transform.rotation = transform.rotation;
         go.transform.localScale = transform.localScale;
 
-        go.AddComponent<MeshFilter>().sharedMesh = slicedMesh;
-        go.AddComponent<MeshRenderer>().materials = materials;
-
-        // ELIMINADO: go.AddComponent<SphereCollider>().radius = 0.15f;
-        // Dejamos que HalfFruitRuntime maneje su propio MeshCollider
-
+        // Físicas
+        var mc = go.AddComponent<MeshCollider>();
+        mc.convex = true;
         var rb2 = go.AddComponent<Rigidbody>();
-        rb2.useGravity = false;
+        rb2.useGravity = false; // La gravedad la maneja HalfFruitRuntime
 
         var half = go.AddComponent<HalfFruitRuntime>();
-        half.Init(slicedMesh, rb.linearVelocity, separationDir, separationForce, materials);
+
+        // Extraemos la malla y los materiales que EzySlice acaba de crear
+        Mesh slicedMesh = go.GetComponent<MeshFilter>().sharedMesh;
+        Material[] mats = go.GetComponent<MeshRenderer>().sharedMaterials;
+
+        float currentSeparationForce = this.isWhaleBonus ? 0f : separationForce;
+        Vector3 inheritedVel = this.isWhaleBonus ? Vector3.zero : rb.linearVelocity;
+        
+        // Inicializamos nuestro script de físicas
+        half.Init(slicedMesh, inheritedVel, separationDir, currentSeparationForce, mats);
+
+        // Herencia de poderes si es la ballena
+        if (this.isWhaleBonus)
+        {
+            half.isWhaleBonusPiece = true;
+            half.maxSliceGenerations = 6; // Le pasamos el poder de filetearse 6 veces
+            half.gravityScale = 0.03f; 
+        }
     }
 
     public Vector3 GetRandAngVel()
@@ -258,12 +291,14 @@ public class Fruit : MonoBehaviour
     {
         if (other.gameObject.layer == LayerMask.NameToLayer("Plane"))
         {
-            if (!isBomba && GameManager.Instance.State == GameState.Play && !isDead)
+            if (rb.linearVelocity.y > 0.1f) return;
+
+            if (!isBomba && !isWhaleBonus && GameManager.Instance.State == GameState.Play && !isDead)
             {
                 GameManager.Instance.AddFail();
                 AudioManager.instance.PlaySoundByName("Fail", false); // play fail sound
             }
-            Destroy(gameObject);
+            FruitSpawner.Instance.ReturnFruit(gameObject, originalPrefab);
         }
     }
     private void LateUpdate()

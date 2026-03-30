@@ -12,7 +12,7 @@ public class ComboUI : MonoBehaviour
     }
     public void SetCombo(int comboCount)
     {
-        string ComboText = $"{comboCount} Fruit Combo!";
+        string ComboText = $"{comboCount} Fish Combo!";
         string ComboNum = $"+{comboCount}";
         comboText.text = ComboText;
         comboNum.text = ComboNum;

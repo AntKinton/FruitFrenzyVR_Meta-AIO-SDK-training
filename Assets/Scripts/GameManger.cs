@@ -1,6 +1,7 @@
 using UnityEngine;
 using System.Collections;
 using UnityEngine.UIElements;
+using TMPro;
 
 public class GameManager : MonoBehaviour
 {
@@ -27,6 +28,14 @@ public class GameManager : MonoBehaviour
     public Transform[] comboTransforms;
     public Quaternion comboRotation = Quaternion.Euler(0f, 0f, 10f);
 
+    // --- NUEVAS VARIABLES PARA EL COMBO DE LA BALLENA ---
+    [Header("Whale Bonus Phase")]
+    public TextMeshProUGUI centerMessageText; // Arrastra aquí un texto UI del centro de tu pantalla
+    public int fishSlicedForCombo = 0;
+    public int nextComboThreshold = 30; // Empieza pidiendo 30
+    public bool isWhaleBonusPhase = false;
+    // ----------------------------------------------------
+
     private void Awake()
     {
         Instance = this;
@@ -36,6 +45,7 @@ public class GameManager : MonoBehaviour
             fruitSpawnerScript = FruitSpawner.GetComponent<FruitSpawner>();
         }
         SwitchToMenu();
+        if (centerMessageText != null) centerMessageText.gameObject.SetActive(false);
     }
 
     public void Update()
@@ -98,6 +108,13 @@ public class GameManager : MonoBehaviour
         score = 0; // FOR TESTING --- PLEASE CHANGE
         fails = 0;
         removeFailGoal = 100;
+
+        // --- NUEVO: RESETEAR LA FASE DE LA BALLENA AL REINTENTAR ---
+        fishSlicedForCombo = 0;
+        nextComboThreshold = 30;
+        isWhaleBonusPhase = false;
+        // -----------------------------------------------------------
+
         scoreScript.UpdateScore();
         InGameCanvas.SetActive(true);
         InGameCanvas.GetComponent<Score>().ResetXs();
@@ -144,6 +161,52 @@ public class GameManager : MonoBehaviour
     public void AddFail()
     {
         fails++;
+    }
+
+    // --- NUEVAS FUNCIONES PARA EL COMBO ---
+    public void RegisterFishSliced()
+    {
+        if (isWhaleBonusPhase || State != GameState.Play) return;
+
+        fishSlicedForCombo++;
+        
+        if (fishSlicedForCombo >= nextComboThreshold)
+        {
+            StartCoroutine(StartWhaleBonusPhase());
+        }
+    }
+
+    private IEnumerator StartWhaleBonusPhase()
+    {
+        isWhaleBonusPhase = true;
+        fishSlicedForCombo = 0;
+        nextComboThreshold += 10; // Para el siguiente combo pedirá 40, luego 50...
+
+        // 1. Detenemos el spawner normal
+        fruitSpawnerScript.StopSpawning();
+
+        // 2. Mostramos el mensaje
+        if (centerMessageText != null)
+        {
+            centerMessageText.text = "¡EMPIEZA EL COMBO!";
+            centerMessageText.gameObject.SetActive(true);
+            AudioManager.instance.PlaySoundByName("ComboStart", false); // Opcional
+        }
+
+        // Esperamos 2 segundos de suspense
+        yield return new WaitForSeconds(2f);
+
+        if (centerMessageText != null) centerMessageText.gameObject.SetActive(false);
+
+        // 3. Lanzamos la ballena especial
+        fruitSpawnerScript.SpawnWhaleBonus();
+
+        // 4. El combo de la ballena dura 8 segundos (puedes ajustarlo)
+        yield return new WaitForSeconds(8f);
+
+        // 5. Volvemos a la normalidad
+        isWhaleBonusPhase = false;
+        fruitSpawnerScript.StartSpawning();
     }
     
 }
