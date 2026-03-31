@@ -32,7 +32,7 @@ public class GameManager : MonoBehaviour
     [Header("Whale Bonus Phase")]
     public TextMeshProUGUI centerMessageText; // Arrastra aquí un texto UI del centro de tu pantalla
     public int fishSlicedForCombo = 0;
-    public int nextComboThreshold = 30; // Empieza pidiendo 30
+    public int nextComboThreshold = 5; // Empieza pidiendo 30 (5 para probar antes)
     public bool isWhaleBonusPhase = false;
     // ----------------------------------------------------
 

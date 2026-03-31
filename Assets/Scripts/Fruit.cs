@@ -215,16 +215,15 @@ public class Fruit : MonoBehaviour
             // Cortamos directamente el GameObject usando el material de la carne para el interior
             SlicedHull result = gameObject.Slice(transform.position, slicePlane.normal, crossSectionMaterial);
 
-            if (result != null)
-            {
-                // EzySlice nos crea directamente los dos GameObjects con sus mallas
-                GameObject top = result.CreateUpperHull(gameObject, crossSectionMaterial);
-                GameObject bottom = result.CreateLowerHull(gameObject, crossSectionMaterial);
+            if (result == null) return;
+            
+            // EzySlice nos crea directamente los dos GameObjects con sus mallas
+            GameObject top = result.CreateUpperHull(gameObject, crossSectionMaterial);
+            GameObject bottom = result.CreateLowerHull(gameObject, crossSectionMaterial);
 
-                // Los configuramos
-                SetupSlicedHalf(top, slicePlane.normal);
-                SetupSlicedHalf(bottom, -slicePlane.normal);
-            }
+            // Los configuramos
+            SetupSlicedHalf(top, slicePlane.normal);
+            SetupSlicedHalf(bottom, -slicePlane.normal);
 
             // Devolvemos el pez original a la piscina al siguiente frame
             StartCoroutine(ReturnNextFrame());
@@ -269,8 +268,14 @@ public class Fruit : MonoBehaviour
         if (this.isWhaleBonus)
         {
             half.isWhaleBonusPiece = true;
-            half.maxSliceGenerations = 6; // Le pasamos el poder de filetearse 6 veces
+            half.maxSliceGenerations = 6; 
             half.gravityScale = 0.03f; 
+            
+            // 1. Ampliamos un poco la grieta (de 2cm a 3cm)
+            go.transform.position += separationDir * 0.03f; 
+            
+            // 2. ¡CONGELACIÓN INSTANTÁNEA! Evita que las físicas arruinen la grieta
+            rb2.isKinematic = true; 
         }
     }
 

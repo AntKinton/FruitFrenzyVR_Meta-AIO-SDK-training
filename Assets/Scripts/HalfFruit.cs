@@ -25,7 +25,7 @@ public class HalfFruitRuntime : MonoBehaviour
         
         // 2. SEGURO DE VIDA EXTRA: Destruir el trozo a los 4 segundos 
         // por si se queda rebotando o no toca el suelo, así limpiamos la memoria.
-        Destroy(gameObject, 4f);
+        Destroy(gameObject, 15f);
     }
 
     public void Init(Mesh slicedMesh, Vector3 inheritedVelocity,
@@ -56,38 +56,39 @@ public class HalfFruitRuntime : MonoBehaviour
 
     public void Slice(UnityEngine.Plane slicePlane)
     {
-        // 1. El muro de seguridad
+        // 1. El muro de seguridad inicial
         if (!isWhaleBonusPiece || hasBeenSliced || sliceGeneration >= maxSliceGenerations) return;
-        hasBeenSliced = true;
 
-        // Recuperamos el material de la carne original de los materiales actuales
         Material[] currentMats = GetComponent<MeshRenderer>().sharedMaterials;
         Material fleshMat = currentMats.Length > 1 ? currentMats[1] : currentMats[0];
 
-        // 2. ¡LA MAGIA DE EZYSLICE! Hace todo el cálculo matemático perfecto
+        // 2. Intentamos hacer el corte con EzySlice
         SlicedHull result = gameObject.Slice(transform.position, slicePlane.normal, fleshMat);
 
-        if (result != null)
+        // ¡EL SEGURO ANTI-DESAPARICIONES! 
+        // Si rozamos el pez pero EzySlice no pudo cortar geometría, cancelamos el proceso.
+        if (result == null) return;
+
+        // Si llegamos aquí, el corte ha sido un éxito 100% real.
+        hasBeenSliced = true;
+
+        GameObject top = result.CreateUpperHull(gameObject, fleshMat);
+        GameObject bottom = result.CreateLowerHull(gameObject, fleshMat);
+
+        SetupNextHalf(top, slicePlane.normal, currentMats);
+        SetupNextHalf(bottom, -slicePlane.normal, currentMats);
+
+        // --- PUNTOS Y COMBO ---
+        if (GameManager.Instance != null)
         {
-            // Creamos los GameObjects con las mallas ya generadas
-            GameObject top = result.CreateUpperHull(gameObject, fleshMat);
-            GameObject bottom = result.CreateLowerHull(gameObject, fleshMat);
-
-            // Los convertimos en nuestros "HalfFruits"
-            SetupNextHalf(top, slicePlane.normal, currentMats);
-            SetupNextHalf(bottom, -slicePlane.normal, currentMats);
-
-            // --- PUNTOS Y COMBO ---
-            if (GameManager.Instance != null)
-            {
-                GameManager.Instance.score += 5; 
-                GameManager.Instance.comboCount += 2; // +2 por ser ballena
-                GameManager.Instance.inComboWindow = true;
-                GameManager.Instance.comboWindowTime = 0.5f;
-                AudioManager.instance.PlaySoundByName("FruitSlice", true);
-            }
+            GameManager.Instance.score += 5; 
+            GameManager.Instance.comboCount += 2; 
+            GameManager.Instance.inComboWindow = true;
+            GameManager.Instance.comboWindowTime = 0.5f;
+            AudioManager.instance.PlaySoundByName("FruitSlice", true);
         }
 
+        // AHORA SÍ destruimos el trozo original porque ya tenemos las dos mitades
         Destroy(gameObject);
     }
 
@@ -112,9 +113,20 @@ public class HalfFruitRuntime : MonoBehaviour
         half.isWhaleBonusPiece = true;
         half.maxSliceGenerations = this.maxSliceGenerations;
         half.gravityScale = this.gravityScale;
-        
+
+    
         // Inicializamos con fuerza nula para que no salgan volando
         half.Init(go.GetComponent<MeshFilter>().sharedMesh, Vector3.zero, separationDir, 0f, mats);
+
+         if (this.isWhaleBonusPiece)
+        {
+            // 1. Ampliamos un poco la grieta
+            go.transform.position += separationDir * 0.03f; 
+            
+            // 2. ¡CONGELACIÓN INSTANTÁNEA!
+            rb2.isKinematic = true; 
+        }
+        
     }
 
     // ¡CRÍTICO PARA EL RENDIMIENTO! Limpia la memoria RAM al destruirse
